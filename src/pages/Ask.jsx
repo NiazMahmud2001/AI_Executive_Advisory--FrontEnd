@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { ArrowUp, BookOpen, Briefcase, Compass, Lock, ShieldCheck, Sparkles, Trash2, TrendingUp } from "lucide-react";
+import { ArrowUp, BookOpen, Briefcase, CircleHelp, Compass, Lock, ShieldCheck, Sparkles, Trash2, TrendingUp } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import AnswerCard, { AnswerError } from "../components/AnswerCard";
+import AnswerCard, { AnswerError, AnswerPending } from "../components/AnswerCard";
 import { ADVISORS, useApi } from "../ui";
 
 const MODES = [
@@ -14,14 +14,12 @@ const MODES = [
 ];
 
 const SUGGESTIONS = [
-  { text: "How much did revenue grow in Q3 2026?", tag: "Finance · calculations", tone: "finance" },
-  { text: "Are we over budget this year?", tag: "Finance · variance", tone: "finance" },
-  { text: "How many days of annual leave do employees get?", tag: "HR · conflicting documents", tone: "hr" },
-  { text: "Can I work remotely from outside the UAE?", tag: "HR · missing information", tone: "hr" },
-  { text: "Who approves a purchase of AED 50,000?", tag: "Management · policy", tone: "hr" },
-  { text: "What is the CEO's total salary package?", tag: "Confidential document", tone: "danger" },
-  { text: "Which projects are in progress?", tag: "Knowledge · projects", tone: "knowledge" },
-  { text: "What is the company's parking policy?", tag: "No evidence available", tone: "" },
+  { text: "How much did revenue grow in Q3 2026?", icon: TrendingUp, tone: "finance" },
+  { text: "Are we over budget this year?", icon: TrendingUp, tone: "finance" },
+  { text: "How many days of annual leave do employees get?", icon: Briefcase, tone: "hr" },
+  { text: "Who approves a purchase of AED 50,000?", icon: Briefcase, tone: "hr" },
+  { text: "What is the CEO's total salary package?", icon: Lock, tone: "danger" },
+  { text: "What is the company's parking policy?", icon: CircleHelp, tone: "knowledge" },
 ];
 
 const ADVISOR_INFO = [
@@ -80,37 +78,33 @@ export default function Ask() {
       <div className="ask">
         <section className="card thread-card">
           <div className="thread">
-            {thread.length === 0 ? (
-              <div className="welcome">
-                <span className="monogram" aria-hidden="true"><Sparkles width={22} height={22} /></span>
-                <h2>Ask about your company documents</h2>
-                <p className="muted" style={{ maxWidth: 520 }}>
-                  Questions are routed to the right advisor automatically. Every answer cites its sources, or says clearly when the evidence is missing.
-                </p>
-                <div className="suggestions">
-                  {SUGGESTIONS.map((s) => (
-                    <button key={s.text} className="suggestion" onClick={() => send(s.text, "auto")}>
-                      <span className="suggestion-text">{s.text}</span>
-                      <span className={`badge ${s.tone ? `badge-${s.tone}` : ""}`}>{s.tag}</span>
-                    </button>
-                  ))}
+            <div className="thread-inner">
+              {thread.length === 0 ? (
+                <div className="welcome">
+                  <span className="monogram" aria-hidden="true"><Sparkles width={22} height={22} /></span>
+                  <h2>Ask about your company documents</h2>
+                  <p className="muted">Every answer comes from the right advisor and cites its sources.</p>
+                  <div className="suggestions">
+                    {SUGGESTIONS.map(({ text: question, icon: Icon, tone }) => (
+                      <button key={question} className="suggestion" onClick={() => send(question, "auto")}>
+                        <span className={`suggestion-icon tone-${tone}`}><Icon /></span>
+                        <span>{question}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              thread.map((t) => (
-                <div className="stack" key={t.id} style={{ gap: 12 }}>
-                  <div className="bubble-q">{t.question}</div>
-                  {t.state === "pending" && (
-                    <div className="answer">
-                      <div className="thinking"><span className="dots"><i /><i /><i /></span> Routing your question and reading the documents...</div>
-                    </div>
-                  )}
-                  {t.state === "done" && <AnswerCard answer={t.response} />}
-                  {t.state === "error" && <AnswerError message={t.error} onRetry={() => send(t.question, t.advisor, t.id)} />}
-                </div>
-              ))
-            )}
-            <div ref={endRef} />
+              ) : (
+                thread.map((t) => (
+                  <div className="turn" key={t.id}>
+                    <div className="bubble-q">{t.question}</div>
+                    {t.state === "pending" && <AnswerPending />}
+                    {t.state === "done" && <AnswerCard answer={t.response} />}
+                    {t.state === "error" && <AnswerError message={t.error} onRetry={() => send(t.question, t.advisor, t.id)} />}
+                  </div>
+                ))
+              )}
+              <div ref={endRef} />
+            </div>
           </div>
 
           <div className="composer">
